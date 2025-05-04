@@ -25,10 +25,21 @@ st.markdown("""
 
 @st.cache_data
 def load_data():
-    path = os.path.join(os.path.dirname(__file__), "vehicles_us.csv")
-    df = pd.read_csv(path)
-    df = df.dropna(subset=["price", "model", "manufacturer", "model_year"])
+    df = pd.read_csv("vehicles_us.csv")
+
+    # Expected columns
+    required_cols = ["price", "model", "manufacturer", "model_year"]
+
+    # Check which columns are missing
+    missing_cols = [col for col in required_cols if col not in df.columns]
+    if missing_cols:
+        st.error(f"Missing required column(s) in CSV: {', '.join(missing_cols)}")
+        st.stop()
+
+    # Clean
+    df = df.dropna(subset=required_cols)
     return df
+
 
 df = load_data()
 
