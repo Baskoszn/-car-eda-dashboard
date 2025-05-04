@@ -4,15 +4,30 @@ import plotly.express as px
 import altair as alt
 import os
 
-# Set Streamlit page config early
+# Page setup
 st.set_page_config(page_title="🚗 Car Dashboard", layout="wide")
 
-# Load data with caching
+# CSS styling
+st.markdown("""
+    <style>
+        .main { background-color: #f4f6f9; }
+        .sidebar .sidebar-content { background-color: #ffffff; padding: 20px; }
+        .stSlider, .stMultiSelect, .stSelectbox { color: #333333 !important; }
+        .metric-box {
+            background-color: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            text-align: center;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 @st.cache_data
 def load_data():
     path = os.path.join(os.path.dirname(__file__), "vehicles_us.csv")
     df = pd.read_csv(path)
-    df = df.dropna(subset=["selling_price", "name", "year"])
+    df = df.dropna(subset=["price", "model", "manufacturer", "model_year"])
     return df
 
 df = load_data()
@@ -21,39 +36,73 @@ st.title("🚗 Car Advertisement Dashboard")
 
 # Sidebar filters
 with st.sidebar:
-    st.header("Filters")
+    st.header("🎛️ Filter Listings")
+
     price_range = st.slider(
-        "Selling Price Range", 
-        int(df.selling_price.min()), 
-        int(df.selling_price.max()), 
+        "💰 Price Range",
+        int(df["price"].min()), int(df["price"].max()),
         (5000, 30000)
     )
-    models = st.multiselect("Car Models", df["name"].unique(), default=list(df["name"].unique()))
 
-# Filter the data
+    manufacturers = st.multiselect(
+        "🏭 Manufacturer",
+        options=sorted(df["manufacturer"].unique()),
+        default=list(df["manufacturer"].unique())
+    )
+
+    filtered_models = df[df["manufacturer"].isin(manufacturers)]["model"].unique()
+    models = st.multiselect(
+        "🚘 Model",
+        options=sorted(filtered_models),
+        default=sorted(filtered_models)
+    )
+
+    min_year, max_year = int(df["model_year"].min()), int(df["model_year"].max())
+    year_range = st.slider(
+        "📅 Model Year Range",
+        min_year, max_year, (min_year, max_year)
+    )
+
+# Apply filters
 filtered_df = df[
-    (df["selling_price"] >= price_range[0]) &
-    (df["selling_price"] <= price_range[1]) &
-    (df["name"].isin(models))
+    (df["price"].between(price_range[0], price_range[1])) &
+    (df["manufacturer"].isin(manufacturers)) &
+    (df["model"].isin(models)) &
+    (df["model_year"].between(year_range[0], year_range[1]))
 ]
 
-# Price Distribution chart
-st.subheader("📈 Selling Price Distribution")
-fig_price = px.histogram(filtered_df, x="selling_price", nbins=30, title="Selling Price Distribution")
+# Key metrics
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.markdown("<div class='metric-box'><h4>Total Listings</h4><h2>📦 {:,}</h2></div>".format(len(filtered_df)), unsafe_allow_html=True)
+with col2:
+    st.markdown("<div class='metric-box'><h4>Average Price</h4><h2>💵 ${:,.0f}</h2></div>".format(filtered_df["price"].mean()), unsafe_allow_html=True)
+with col3:
+    st.markdown("<div class='metric-box'><h4>Top Manufacturer</h4><h2>🏆 {}</h2></div>".format(filtered_df["manufacturer"].mode().iloc[0]), unsafe_allow_html=True)
+
+# Charts
+st.subheader("📈 Price Distribution")
+fig_price = px.histogram(
+    filtered_df, x="price", nbins=30,
+    title="Distribution of Vehicle Prices",
+    color_discrete_sequence=["#2c7be5"]
+)
+fig_price.update_layout(plot_bgcolor="#f9f9f9", paper_bgcolor="#f9f9f9")
 st.plotly_chart(fig_price, use_container_width=True)
 
-# Scatter plot: Price vs Year
-st.subheader("📊 Scatter Plot: Price vs Year")
+st.subheader("🌀 Price vs Model Year")
 scatter = alt.Chart(filtered_df).mark_circle(size=60).encode(
-    x="year:Q",
-    y="selling_price:Q",
-    color="fuel:N",
-    tooltip=["name", "selling_price", "year"]
-).interactive()
+    x=alt.X("model_year:Q", title="Model Year"),
+    y=alt.Y("price:Q", title="Price (USD)"),
+    color="manufacturer:N",
+    tooltip=["model", "price", "model_year"]
+).interactive().properties(
+    height=400
+)
 st.altair_chart(scatter, use_container_width=True)
 
-# CSV Export
-st.subheader("📥 Download Filtered Data")
+# Download
+st.subheader("📥 Download Filtered Results")
 st.download_button(
     label="Download CSV",
     data=filtered_df.to_csv(index=False),
