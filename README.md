@@ -1,18 +1,23 @@
 # 🚗 Car Advertisement Dashboard
 
-This is a simple Streamlit web app that visualizes car advertisement data with filters and interactive charts.
+This Streamlit web app allows users to explore a dataset of used cars in the U.S., filter by price and model, and view interactive charts.
 
-## Features
-- Filter by price and manufacturer
-- View price distribution (Plotly)
-- View scatter plot of price vs year (Altair)
-- Download filtered dataset as CSV
+---
 
-## To Run Locally
-```bash
-pip install -r requirements.txt
-streamlit run app.py
-```
+## 📁 Project Structure
 
-## Dataset
-Includes `vehicles_us.csv`, a sample dataset of used vehicles in the US.
+- `app.py`: Main Streamlit app
+- `vehicles_us.csv`: The dataset used
+- `requirements.txt`: Python dependencies
+- `car_dashboard.ipynb`: Jupyter Notebook used during development
+- `README.md`: This file
+
+---
+
+## ▶️ How to Run
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/car-dashboard.git
+   cd car-dashboard
+
